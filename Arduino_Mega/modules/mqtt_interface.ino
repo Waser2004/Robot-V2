@@ -2,10 +2,10 @@
 #include <Arduino.h>
 
 // Constructor implementation
-MQTT_Interface::MQTT_Interface(Stream& transport, size_t maxSubs = 10) 
+MQTT_Interface::MQTT_Interface(Stream& transport, size_t maxSubs) 
     : _serial(transport), _maxSubs(maxSubs)
 {
-    _sub = new Sub[_maxSubs];
+    _subs = new Sub[_maxSubs];
 }
 
 // Publish method implementation
@@ -61,15 +61,19 @@ void MQTT_Interface::loop() {
 }
 
 void MQTT_Interface::handleMessage(const String& message) {
-    // check if message starts with "pub" or "sub"
-    if (message.startsWith(F("sub "))) {return}
+    // check if message starts with "sub" - skip subscription messages
+    if (message.startsWith(F("sub "))) {
+        return;
+    }
 
     // get space positions
-    int firstSpace = line.indexOf(' ');
-    int secondSpace = line.indexOf(' ', firstSpace + 1);
+    int firstSpace = message.indexOf(' ');
+    int secondSpace = message.indexOf(' ', firstSpace + 1);
 
     // check if message is valid format
-    if (firstSpace < 0 || secondSpace < 0) {return}
+    if (firstSpace < 0 || secondSpace < 0) {
+        return;
+    }
 
     // extract topic and payload
     String topic = message.substring(firstSpace + 1, secondSpace);

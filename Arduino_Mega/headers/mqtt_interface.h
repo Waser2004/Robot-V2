@@ -19,7 +19,7 @@ typedef struct Sub {
 class MQTT_Interface {
     public:
         // constructor
-        explicit MQTT_Interface(Stream& transport);
+        explicit MQTT_Interface(Stream& transport, size_t maxSubs = 10);
 
         // loop method
         void loop();
@@ -30,7 +30,7 @@ class MQTT_Interface {
 
     private:
         // transport stream
-        Stream& _serial
+        Stream& _serial;
 
         // subscriptions
         Sub* _subs = nullptr;
@@ -42,4 +42,4 @@ class MQTT_Interface {
 
         // handle incoming messages
         void handleMessage(const String& message);
-}
+};

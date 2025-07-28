@@ -1,4 +1,4 @@
-#include "mqqt_interface.h"
+#include "mqtt_interface.h"
 
 #define ESP_01_SERIAL Serial1
 
@@ -14,7 +14,8 @@ void testCallback(const String& topic, const String& payload) {
 
 void setup() {
     // Initialize serial communication
-    ESP_01_SERIAL.begin(9600);
+    Serial.begin(115200);
+    ESP_01_SERIAL.begin(115200);
 
     mqttInterface.subscribe("test", testCallback);
     mqttInterface.publish("test", "Hello, MQTT!");
