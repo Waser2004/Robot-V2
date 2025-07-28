@@ -1,4 +1,4 @@
-# Communication Protocol
+# Wifi Communication Protocol (Arduino Mega ↔ Computer)
 
 This protocol governs all MQTT‑based messaging between an Arduino Mega (“Arduino”) and a host Computer (“Computer”).  
 **Message format**: JSON  
@@ -78,3 +78,29 @@ This protocol governs all MQTT‑based messaging between an Arduino Mega (“Ard
    Payload: {}
    ```
    Use this after any commanded target (rotation or gripper) is reached.  
+
+# I2C Communication Protocol (Arduino Mega ↔ ATMega328P)
+
+The Arduino Mega communicates with multiple ATMega328P microcontrollers via the I2C bus, acting as the master while the ATMega328Ps serve as slaves.
+
+## Communication Flow
+
+The Arduino Mega periodically transmits rotation updates to each ATMega328P. Each message contains:
+
+- **Delta rotation** (float, 4 bytes): delta change in joint angle.
+- **Delta time** (float, 4 bytes): time that should elapse for that update.
+
+Each I2C message is exactly 8 bytes (2 floats). The Arduino Mega maintains the current and target rotations, sending updates continuously to ensure synchronization.
+
+## Message Format
+
+| Field         | Type   | Size (bytes) | Description                       |
+|---------------|--------|--------------|-----------------------------------|
+| Delta rotation| float  | 4            | Change in joint angle             |
+| Delta time    | float  | 4            | Time elapsed since last update    |
+
+## Notes
+
+- Each ATMega328P receives only the data relevant to its assigned joint.
+- The Arduino Mega initiates all communication; ATMega328Ps respond only if required by the protocol.
+
