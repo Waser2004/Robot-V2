@@ -83,24 +83,35 @@ This protocol governs all MQTT‑based messaging between an Arduino Mega (“Ard
 
 The Arduino Mega communicates with multiple ATMega328P microcontrollers via the I2C bus, acting as the master while the ATMega328Ps serve as slaves.
 
-## Communication Flow
-
-The Arduino Mega periodically transmits rotation updates to each ATMega328P. Each message contains:
-
-- **Delta rotation** (float, 4 bytes): delta change in joint angle.
-- **Delta time** (float, 4 bytes): time that should elapse for that update.
-
-Each I2C message is exactly 8 bytes (2 floats). The Arduino Mega maintains the current and target rotations, sending updates continuously to ensure synchronization.
-
 ## Message Format
 
-| Field         | Type   | Size (bytes) | Description                       |
-|---------------|--------|--------------|-----------------------------------|
-| Delta rotation| float  | 4            | Change in joint angle             |
-| Delta time    | float  | 4            | Time elapsed since last update    |
+Each message will consist of `message number` + `payload` in the byte format
+
+| name            | message number | Size (bytes) | Description                          |
+|-----------------|----------------|--------------|--------------------------------------|
+| rotation target | 0              | 9            | gives a rotation target              |
+| stop            | 1              | 1            | force the actuator to imediatly stop |
+
+### `[0]` rotation target
+
+| Field          | Type   | Size (bytes) | Description                       |
+|----------------|--------|--------------|-----------------------------------|
+| message number | byte   | 1            | message identification number     |
+| Delta rotation | float  | 4            | Change in joint angle             |
+| Delta time     | float  | 4            | Time elapsed since last update    |
+
+### `[1]` stop
+
+| Field          | Type   | Size (bytes) | Description                       |
+|----------------|--------|--------------|-----------------------------------|
+| message number | byte   | 1            | message identification number     |
+
+## I2C Address Assignment
+
+Each actuator is assigned a unique I2C address.  
+The address corresponds directly to the actuator’s number, starting from the base `0` up to the gripper `5`.
 
 ## Notes
 
 - Each ATMega328P receives only the data relevant to its assigned joint.
 - The Arduino Mega initiates all communication; ATMega328Ps respond only if required by the protocol.
-
