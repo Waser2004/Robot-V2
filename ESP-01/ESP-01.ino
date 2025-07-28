@@ -58,7 +58,6 @@ void SerialToWifi() {
     /* This function handles the data transfer from Serial to WiFi client */
     // if no client is connected replay to Serial with no connection error
     if (!client || !client.connected()) {
-        Serial.println("No WiFi client connected");
         return;
     }
 
