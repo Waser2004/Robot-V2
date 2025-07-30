@@ -15,4 +15,6 @@ struct Context {
     // movement target
     float target_rotation[6];
     bool  target_gripper_state; // true = open, false = closed
+
+    float actuator_zero_pos[6] = {0, 0, 0, 0, 0, 0}; 
 }
