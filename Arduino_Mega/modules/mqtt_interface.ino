@@ -87,7 +87,7 @@ void MQTT_Interface::handleMessage(const String& message) {
 
     // handle deserialization error
     if (error) {
-        publish(topic, "{\"error\":\"Invalid JSON payload\"}");
+        publish(topic, "{\"error\": \"payload could not be parsed\"}");
     }
 
     // call all callbacks that match the topic
