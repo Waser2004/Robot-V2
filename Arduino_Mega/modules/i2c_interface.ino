@@ -39,3 +39,26 @@ void I2C_Interface::sendMovement(byte address, float deltaRotation, float deltaT
     Wire.write(message, sizeof(message));
     Wire.endTransmission();
 }
+
+float I2C_Interface::requestVelocity(byte address) {
+    /* 
+        This function requests the current velocity of an actuator
+    */
+    // request one float
+    Wire.requestFrom(address, sizeof(float));
+    
+    if (Wire.available() == sizeof(float)) {
+        // read bytes into buffer
+        byte buffer[sizeof(float)];
+        for (int i = 0; i < sizeof(float); i++) {
+            buffer[i] = Wire.read();
+        }
+
+        // convert bytes to float
+        float velocity;
+        memcpy(&velocity, buffer, sizeof(float));
+        return velocity;
+    }
+    
+    return 0.0f; // Return 0 if no data is available
+}

@@ -6,7 +6,10 @@ class I2C_Interface {
         // initialize I2C
         void init();
 
-        // message functions
+        // send functions
         void sendStop();
         void sendMovement(byte adress, float deltaRotation, float deltaTime);
+
+        // request functions
+        float requestVelocity(byte address);
 };

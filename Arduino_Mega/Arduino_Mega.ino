@@ -32,6 +32,7 @@ void setup() {
 
     // recieve rotation target
     mqttInterface.subscribe("computer/out/health/info", HealthMonitor::sendHealthStatus);
+    mqttInterface.subscribe("computer/out/rotation/info", ActuatorManager::onActuatorInfo);
     mqttInterface.subscribe("computer/out/rotation/target", ActuatorManager::onTargetRecieve);
 
     // perform health check
