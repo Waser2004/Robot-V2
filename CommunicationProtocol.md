@@ -56,9 +56,9 @@ This protocol governs all MQTT‑based messaging between an Arduino Mega (“Ard
 
 > **Payload schema**  
 > ```json
-> { "ok": <bool>, "message": <string> }
+> { "0": <float>, "1": <float>, ..., "5": <float> }
 > ```
-> `ok=false` indicates an error; `message` describes the issue.
+> Keys `0–5` correspond to joints 0–5.
 
 | Direction | Topic                       | Payload                   | Expected Response                                 |
 |-----------|-----------------------------|---------------------------|---------------------------------------------------|
@@ -77,7 +77,11 @@ This protocol governs all MQTT‑based messaging between an Arduino Mega (“Ard
    Topic: arduino/out/action/complete
    Payload: {}
    ```
-   Use this after any commanded target (rotation or gripper) is reached.  
+   Use this after any commanded target (rotation or gripper) is reached.
+5. If the payload can not be paresed to json, a error will be published on the topic it was sent on:
+   ```json
+   {"error": "payload could not be parsed"}
+   ```
 
 # I2C Communication Protocol (Arduino Mega ↔ ATMega328P)
 
