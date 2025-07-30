@@ -133,9 +133,17 @@ void I2CRecive(int recieve_amount){
     }
 }
 
-void I2CRequest() {
-    /* This Function handles requests (currently Nothing can be requested) */
-    return;
+void I2CRequest(int request_amount) {
+    /* This Function handles requests (returns the current velocity) */
+    if (request_amount == 4) {
+        // value is 0.0 if stop movement is set and otherwise the current velocity
+        float value = stop_movement ? 0.0 : velocity;
+        byte velocity_bytes[4];
+
+        // convert float to bytes and send
+        memcpy(velocity_bytes, &value, sizeof(float));
+        Wire.write(velocity_bytes, sizeof(velocity_bytes));
+    }
 }
 
 void setup() {
