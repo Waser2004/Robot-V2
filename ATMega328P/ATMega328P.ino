@@ -1,3 +1,9 @@
+/*
+    This script is for the ATMega328P microcontroller to control one actuator
+    using I2C communication. It calculates the required steps based on the
+    desired angle and time, and controls the stepper motor accordingly.
+*/
+
 #include <Wire.h>
 
 // These variables have to be set for each Actuator differently
@@ -13,11 +19,15 @@
 
 // Movement variables
 float delta_angle             = 0.0; // in degrees
-float delta_rotation          = 0.0; // in seconds
+float delta_time              = 0.0; // in seconds
 float velocity                = 0.0; // deg/s
 
 int   delay_microseconds      = 0;
 bool  microstepping_state[3] = {LOW, LOW, LOW};
+
+// track steps
+int   requiered_steps_amount  = 0;
+int   steps_done              = 0;
 
 // operation variables
 bool stop_movement            = false;
@@ -29,7 +39,7 @@ void calculateActionVariables() {
         at minimum 1600 microseconds.
     */
     // convert velocity to time for one step (in Microseconds)
-    float time_for_one_step = (1.8 / GEAR_RATIO) / velocity * 1000000;
+    float time_for_one_step = (1.8 / GEAR_RATIO) / abs(velocity) * 1000000;
 
     // check microstepping
     int divider = 2;
@@ -38,10 +48,18 @@ void calculateActionVariables() {
             break;
         }
     }
+    divider /= 2; // adjust divider to the last valid value
 
-    // calculate action variables
+    // calculate requiered steps amount
+    steps_done = 0;
+    requiered_steps_amount = round(abs(delta_angle) / (1.8 / GEAR_RATIO)) * divider;
+
+    // calculate delay in microseconds for one step
     delay_microseconds = round(time_for_one_step / float(divider));
-    setMicrosteppingFromDivider(divider / 2);
+
+    // TODO: update based on real world actuator direction
+    digitalWrite(DIR, delta_angle < 0 ? LOW : HIGH);
+    setMicrosteppingFromDivider(divider);
 }
 
 void setMicrosteppingFromDivider(int divider){
@@ -97,11 +115,11 @@ void I2CRecive(int recieve_amount){
 
             // convert to floats
             memcpy(&delta_angle, &read_buffer[0], 4);
-            memcpy(&delta_rotation, &read_buffer[4], 4);
+            memcpy(&delta_time,  &read_buffer[4], 4);
 
             // calculate new velocity
-            if (delta_rotation == 0) {return;}
-            velocity = delta_angle / delta_rotation;
+            if (delta_time == 0) {return;}
+            velocity = delta_angle / delta_time;
             stop_movement = false;
 
             // calculate action variables
@@ -136,11 +154,14 @@ void setup() {
 }
 
 void loop() {
-    // move
-    if (!stop_movement) {
+    if (!stop_movement && requiered_steps_amount > steps_done) {
+        // do one step
         digitalWrite(STEP, HIGH);
         delayMicroseconds(100);
         digitalWrite(STEP, LOW);
         delayMicroseconds(delay_microseconds - 100);
+
+        // keep track of steps to know when to stop
+        steps_done++;
     }
 }
