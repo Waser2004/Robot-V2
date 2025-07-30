@@ -16,5 +16,8 @@ struct Context {
     float target_rotation[6];
     bool  target_gripper_state; // true = open, false = closed
 
-    float actuator_zero_pos[6] = {0, 0, 0, 0, 0, 0}; 
+    // actuator angles
+    float actuator_zero_pos[6]    = {0, 0, 0, 0, 0, 0}; // raw sensor value that corresponds to actuator 0 rotation
+    float actuator_resting_pos[6] = {0, 0, 0, 90, 0, 90}; // positino robot moves to at shutdown
+    float actuator_home_pos[6]    = {0, 0, 0, 0, 0, 0}; // positino robot moves to after startup (to check if cube is on target)
 }
