@@ -7,6 +7,7 @@
 #include "sensor_reader.h"
 #include "mqtt_interface.h"
 #include "health_monitor.h"
+#include "actuator_manager.h"
 
 #define ESP_01_SERIAL Serial1
 
@@ -15,10 +16,11 @@ AS5600 as5600;
 // initialize context and modules
 Context context;
 
-SensorReader   sensorReader(as5600, context);
-I2C_Interface  i2c_interface;
-HealthMonitor  healthMonitor(context, sensorReader, i2c_interface);
-MQTT_Interface mqttInterface(ESP_01_SERIAL);
+SensorReader    sensorReader(as5600, context);
+I2C_Interface   i2c_interface;
+HealthMonitor   healthMonitor(context, sensorReader, i2c_interface);
+MQTT_Interface  mqttInterface(ESP_01_SERIAL);
+ActuatorManager actuatorManager(context, sensorReader, i2c_interface);
 
 void setup() {
     // Initialize serial communication
@@ -28,14 +30,25 @@ void setup() {
     // Initialize I2C communication
     i2c_interface.init();
 
+    // recieve rotation target
+    mqttInterface.subscribe("robot/target_rotation", ActuatorManager::onTargetRecieve);
+
     // perform health check
     healthMonitor.performHealthCheck();
 }
 
 void loop() {
-    // listen for incoming messages
-    mqttInterface.loop();
+    if (context.execute_movement){
+        // listen for incoming messages
+        bool targetReached = mqttInterface.loop();
 
-    // Add a small delay to avoid flooding the serial output
+        // send movment complete message if target is reached
+        if (targetReached) {
+            context.execute_movement = false;
+            mqttInterface.publish("arduino/out/rotation/complete", "{}");
+        }
+    }
+    
+    // Add a small delay
     delay(100);
 }
