@@ -31,7 +31,8 @@ void setup() {
     i2c_interface.init();
 
     // recieve rotation target
-    mqttInterface.subscribe("robot/target_rotation", ActuatorManager::onTargetRecieve);
+    mqttInterface.subscribe("computer/out/health/info", HealthMonitor::sendHealthStatus);
+    mqttInterface.subscribe("computer/out/rotation/target", ActuatorManager::onTargetRecieve);
 
     // perform health check
     healthMonitor.performHealthCheck();

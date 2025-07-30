@@ -1,9 +1,15 @@
-#include "health_monitor.h"
+#include <ArduinoJson.h>
+
+#include "context.h"
 #include "sensor_reader.h"
 #include "i2c_interface.h"
+#include "health_monitor.h"
+#include "mqtt_interface.h"
 
-HealthMonitor::HealthMonitor(Context& ctx, SensorReader& sensorReader, I2C_Interface& i2cInterface)
-    : context_(ctx), sensorReader_(sensorReader), i2cInterface_(i2cInterface) {}
+HealthMonitor::HealthMonitor(Context& ctx, SensorReader& sensorReader, I2C_Interface& i2cInterface, MQTT_Interface& mqttInterface)
+    : context_(ctx), sensorReader_(sensorReader), i2cInterface_(i2cInterface), mqttInterface_(mqttInterface) {
+        instance_ = this;
+    }
 
 bool HealthMonitor::performHealthCheck() {
     /* 
@@ -40,7 +46,6 @@ bool HealthMonitor::performHealthCheck() {
 
         // await movement to complete
         delayMicroseconds(200000);
-        i2cInterface_.sendStop(); // TODO: actuators will not stop automatically after movement complete. Until their code is updated this is needed
 
         // read current actuator angles where health check is not yet complete
         
@@ -82,10 +87,6 @@ bool HealthMonitor::performHealthCheck() {
         float deltaRotation = current_readings[actuator_index] - initial_readings[actuator_index];
         i2cInterface_.sendMovement(actuator_index, deltaRotation, 0.6);
     }
-
-    // await rotation back
-    delayMicroseconds(600000);
-    i2cInterface_.sendStop(); // TODO: actuators will not stop automatically after movement complete. Until their code is updated this is needed
     
     // overall health check result
     if (complete_count == 6) {
@@ -95,16 +96,26 @@ bool HealthMonitor::performHealthCheck() {
     }
 }
 
-HealthMonitor::sendHealthStatus() {
-    // create payload string
-    String payload = "{\"result\":[";
+void HealthMonitor::sendHealthStatus(const String& topic, const JsonDocument& payload) {
+    /*
+        This function sends the health check results to the MQTT broker.
+        It publishes a JSON object containing the health check results for each actuator.
+    */
+    if (!instance_) return;
 
-    for (int i = 0; i < 6; i++) {
-        payload += String(context_.health_check_results[i]);
-        if (i < 5) payload += ",";
-    }
-    payload += "]}";
+    // create Json document
+    JsonDocument doc;
+    doc["0"] = context_.health_check_results[0];
+    doc["1"] = context_.health_check_results[1];
+    doc["2"] = context_.health_check_results[2];
+    doc["3"] = context_.health_check_results[3];
+    doc["4"] = context_.health_check_results[4];
+    doc["5"] = context_.health_check_results[5];
 
-    // publish Health status
-    Serial1.write("pub arduino/out/health/status " + payload + "\n");
+    // serialize Json document
+    String jsonString;
+    serializeJson(doc, jsonString);
+
+    // publish health status
+    instance_->mqttInterface_.publish("arduino/out/health/status", jsonString);
 }
