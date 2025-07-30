@@ -1,5 +1,7 @@
-#include "mqtt_interface.h"
 #include <Arduino.h>
+#include <ArduinoJson.h>
+
+#include "mqtt_interface.h"
 
 // Constructor implementation
 MQTT_Interface::MQTT_Interface(Stream& transport, size_t maxSubs) 
@@ -79,10 +81,19 @@ void MQTT_Interface::handleMessage(const String& message) {
     String topic = message.substring(firstSpace + 1, secondSpace);
     String payload = message.substring(secondSpace + 1);
 
+    // deserialize JSON payload
+    JsonDocument jsonPayload;
+    DeserializationError error = deserializeJson(jsonPayload, payload);
+
+    // handle deserialization error
+    if (error) {
+        publish(topic, "{\"error\":\"Invalid JSON payload\"}");
+    }
+
     // call all callbacks that match the topic
     for (size_t i = 0; i < _numSubs; i++) {
         if (_subs[i].filter == topic) {
-            _subs[i].callback(topic, payload);
+            _subs[i].callback(topic, jsonPayload);
         }
     }
 }

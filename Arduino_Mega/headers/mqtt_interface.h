@@ -7,9 +7,10 @@
 */
 #pragma once
 #include <Arduino.h>
+#include <ArduinoJson.h>
 
 // types
-typedef void (*MQTT_Callback)(const String& topic, const String& payload);
+typedef void (*MQTT_Callback)(const String& topic, const JsonDocument& payload);
 typedef struct Sub {
     String filter;
     MQTT_Callback callback;
