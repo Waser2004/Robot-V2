@@ -1,4 +1,11 @@
+#include <Wire.h>
 #include "i2c_interface.h"
+
+void I2C_Interface::init() {
+    /* This function initializes the I2C communication */
+    Wire.begin();
+    Wire.setClock(400000); // Set I2C clock speed to 400kHz
+}
 
 void I2C_Interface::sendStop() {
     /* This function sends the stop signal to all actuators */
@@ -12,7 +19,14 @@ void I2C_Interface::sendStop() {
 }
 
 void I2C_Interface::sendMovement(byte address, float deltaRotation, float deltaTime) {
-    /* This function send a Movement to one Actuator */
+    /* 
+        This function send a Movement to one Actuator
+        
+        Args:
+            address: the I2C address of the actuator (actuator index)
+            deltaRotation: the roation in degrees for the movement
+            deltaTime: the time in seconds for the movement
+    */
     // create message
     byte message[9];
 

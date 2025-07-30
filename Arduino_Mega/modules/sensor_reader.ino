@@ -2,6 +2,8 @@
 #include "AS5600.h"
 #include "context.h"
 
+#define TCA_ADDR 0x70 // TCA9548A I2C multiplexer address
+
 SensorReader::SensorReader(AS5600& as5600, Context& context) 
     : as5600_(as5600), context_(context) 
 {   
