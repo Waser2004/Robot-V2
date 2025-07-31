@@ -30,4 +30,4 @@ struct Context {
 
     // settings
     float actuator_rotation_tolerance = 0.2; // min offset between real and target rotation in degrees per actuator to be considered as "reached"
-}
+};

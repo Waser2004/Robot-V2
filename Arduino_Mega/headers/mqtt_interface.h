@@ -27,7 +27,7 @@ class MQTT_Interface {
         // loop method
         void        loop();
         void        sendCheckup();
-        static void onCheckupReceive(const String& topic, const JsonDocument& payload)
+        static void onCheckupReceive(const String& topic, const JsonDocument& payload);
 
 
         // pub & sub methods

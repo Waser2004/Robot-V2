@@ -6,12 +6,14 @@
 #include "health_monitor.h"
 #include "mqtt_interface.h"
 
+HealthMonitor* HealthMonitor::instance_ = nullptr;
+
 HealthMonitor::HealthMonitor(Context& ctx, SensorReader& sensorReader, I2C_Interface& i2cInterface, MQTT_Interface& mqttInterface)
     : context_(ctx), sensorReader_(sensorReader), i2cInterface_(i2cInterface), mqttInterface_(mqttInterface) {
         instance_ = this;
     }
 
-bool HealthMonitor::performHealthCheck() {
+void HealthMonitor::performHealthCheck() {
     /* 
         This function initiates a small rotation for each actuator and verifies sensor feedback to ensure proper operation.
 
@@ -105,12 +107,12 @@ void HealthMonitor::sendHealthStatus(const String& topic, const JsonDocument& pa
 
     // create Json document
     JsonDocument doc;
-    doc["0"] = context_.health_check_results[0];
-    doc["1"] = context_.health_check_results[1];
-    doc["2"] = context_.health_check_results[2];
-    doc["3"] = context_.health_check_results[3];
-    doc["4"] = context_.health_check_results[4];
-    doc["5"] = context_.health_check_results[5];
+    doc["0"] = instance_->context_.health_check_results[0];
+    doc["1"] = instance_->context_.health_check_results[1];
+    doc["2"] = instance_->context_.health_check_results[2];
+    doc["3"] = instance_->context_.health_check_results[3];
+    doc["4"] = instance_->context_.health_check_results[4];
+    doc["5"] = instance_->context_.health_check_results[5];
 
     // serialize Json document
     String jsonString;

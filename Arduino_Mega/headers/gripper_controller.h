@@ -2,7 +2,7 @@
 
 #include <Servo.h>
 #include <Arduino.h>
-#include <ArdionoJson.h>
+#include <ArduinoJson.h>
 
 #include "context.h"
 #include "mqtt_interface.h"
@@ -26,4 +26,4 @@ class GripperController {
         Servo leftFinger_;
         Servo rightFinger_;
 
-}
+};

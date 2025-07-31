@@ -15,7 +15,7 @@ class ActuatorManager {
 
         bool        loop();
         static void onTargetRecieve(const String& topic, const JsonDocument& payload);
-        static void onActuatorInfo(const String& topic, const JsonDocument& payload)
+        static void onActuatorInfo(const String& topic, const JsonDocument& payload);
 
     private:
 
@@ -24,5 +24,6 @@ class ActuatorManager {
         Context& context_;
         SensorReader& sensorReader_;
         I2C_Interface& i2c_interface_;
+        MQTT_Interface& mqtt_interface_;
 
-}
+};

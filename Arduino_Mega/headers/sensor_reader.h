@@ -17,4 +17,4 @@ class SensorReader {
         AS5600& as5600_;
         const int TCA_ADDR = 0x70;
 
-}
+};

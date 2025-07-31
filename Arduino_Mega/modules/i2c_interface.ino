@@ -13,7 +13,7 @@ void I2C_Interface::sendStop() {
 
     for (int i = 0; i < 6; i++) {
         Wire.beginTransmission(i);
-        Wire.write(message, sizeof(message));
+        Wire.write(message);
         Wire.endTransmission();
     }
 }

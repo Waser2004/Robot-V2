@@ -4,6 +4,8 @@
 #include "context.h"
 #include "mqtt_interface.h"
 
+MQTT_Interface* MQTT_Interface::instance_ = nullptr;
+
 // Constructor implementation
 MQTT_Interface::MQTT_Interface(Stream& transport, Context& context, size_t maxSubs) 
     : serial_(transport), context_(context), maxSubs_(maxSubs)
@@ -19,7 +21,7 @@ void MQTT_Interface::onCheckupReceive(const String& topic, const JsonDocument& p
         It updates the last checkup receive time.
     */
     if (!instance_) return;
-    instance_.context_.lastCheckupReceive = millis();
+    instance_->context_.lastCheckupReceive = millis();
 }
 
 void MQTT_Interface::sendCheckup() {

@@ -26,4 +26,4 @@ class HealthMonitor {
         MQTT_Interface& mqttInterface_;
 
         int maxHealthCheckRepeats = 3; // Number of checks to perform for each actuator before determining failure
-}
+};

@@ -15,13 +15,14 @@
 AS5600 as5600;
 
 // initialize context and modules
-Context context;
+Context           context;
+
+I2C_Interface     i2c_interface;
+MQTT_Interface    mqttInterface(ESP_01_SERIAL, context); 
 
 SensorReader      sensorReader(as5600, context);
-I2C_Interface     i2c_interface;
-HealthMonitor     healthMonitor(context, sensorReader, i2c_interface);
-MQTT_Interface    mqttInterface(ESP_01_SERIAL);
-ActuatorManager   actuatorManager(context, sensorReader, i2c_interface);
+HealthMonitor     healthMonitor(context, sensorReader, i2c_interface, mqttInterface);
+ActuatorManager   actuatorManager(context, sensorReader, i2c_interface, mqttInterface);
 GripperController gripperController(context, mqttInterface);
 
 void setup() {
