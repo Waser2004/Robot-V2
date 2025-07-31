@@ -45,10 +45,10 @@ This protocol governs all MQTT‑based messaging between an Arduino Mega (“Ard
 
 | Direction | Topic                       | Payload                   | Expected Response                         |
 |-----------|-----------------------------|---------------------------|-------------------------------------------|
-| Arduino → Computer | `arduino/out/graper/state`   | gripper payload           | —                                         |
-| Arduino → Computer | `arduino/out/graper/complete`   | `{}`           | —                                         |
-| Computer → Arduino | `computer/out/graper/info`    | `{}`                       | Arduino must publish its current state.   |
-| Computer → Arduino | `computer/out/graper/target`  | gripper payload           | Upon action completion, Arduino → `arduino/out/action/complete`. |
+| Arduino → Computer | `arduino/out/gripper/state`   | gripper payload           | —                                         |
+| Arduino → Computer | `arduino/out/gripper/complete`   | `{}`           | —                                         |
+| Computer → Arduino | `computer/out/gripper/info`    | `{}`                       | Arduino must publish its current state.   |
+| Computer → Arduino | `computer/out/gripper/target`  | gripper payload           | Upon action completion, Arduino → `arduino/out/action/complete`. |
 
 ---
 
