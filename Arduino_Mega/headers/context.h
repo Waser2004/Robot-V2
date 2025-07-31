@@ -8,6 +8,10 @@ struct Context {
     // force stop
     bool  force_stop = false;
 
+    // last checkup time
+    unsigned long lastCheckupSend    = 0;
+    unsigned long lastCheckupReceive = 0;
+
     // healthcheck variables
     bool  good_health_check = false;
     byte  health_check_results[6];

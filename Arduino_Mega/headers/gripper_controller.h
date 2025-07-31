@@ -18,7 +18,7 @@ class GripperController {
 
     private:
 
-        GripperController instance_;
+        static GripperController* instance_;
 
         Context& context_;
         MQTT_Interface& mqttInterface_;

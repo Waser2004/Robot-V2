@@ -1,22 +1,50 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 
+#include "context.h"
 #include "mqtt_interface.h"
 
 // Constructor implementation
-MQTT_Interface::MQTT_Interface(Stream& transport, size_t maxSubs) 
-    : _serial(transport), _maxSubs(maxSubs)
+MQTT_Interface::MQTT_Interface(Stream& transport, Context& context, size_t maxSubs) 
+    : serial_(transport), context_(context), maxSubs_(maxSubs)
 {
-    _subs = new Sub[_maxSubs];
+    subs_ = new Sub[maxSubs_];
+    instance_ = this;
+}
+
+// checkup methods
+void MQTT_Interface::onCheckupReceive(const String& topic, const JsonDocument& payload) {
+    /*
+        This method is called when a checkup message is received.
+        It updates the last checkup receive time.
+    */
+    if (!instance_) return;
+    instance_.context_.lastCheckupReceive = millis();
+}
+
+void MQTT_Interface::sendCheckup() {
+    /*
+        This method continually sends a checkup message every second.
+    */
+    // check if one second has passed since last checkup
+    if (millis() - context_.lastCheckupSend < 1000) {
+        return;
+    }
+
+    // publish checkup
+    publish("checkup", "{}");
+    
+    // update last checkup send time
+    context_.lastCheckupSend = millis();
 }
 
 // Publish method implementation
 bool MQTT_Interface::publish(const String& topic, const String& payload) {
     // pub payload
-    _serial.print(F("pub "));
-    _serial.print(topic);
-    _serial.print(" ");
-    _serial.println(payload);
+    serial_.print(F("pub "));
+    serial_.print(topic);
+    serial_.print(" ");
+    serial_.println(payload);
 
     // pub complete return true
     return true;
@@ -25,29 +53,30 @@ bool MQTT_Interface::publish(const String& topic, const String& payload) {
 // Subscribe method implementation
 bool MQTT_Interface::subscribe(const String& filter, const MQTT_Callback& callback) {
     // check if subscriptions are full
-    if (_numSubs >= _maxSubs) {
+    if (numSubs_ >= maxSubs_) {
         return false;
     }
 
     // add subscription
-    _subs[_numSubs].filter = filter;
-    _subs[_numSubs].callback = callback;
-    _numSubs++;
+    subs_[numSubs_].filter = filter;
+    subs_[numSubs_].callback = callback;
+    numSubs_++;
 
     // subscription complete return true
     return true;
 }
 
 void MQTT_Interface::loop() {
-    while (_serial.available()) {
+    // message handling loop
+    while (serial_.available()) {
         //read char
-        char c = (char)_serial.read();
+        char c = (char)serial_.read();
 
         // end of line
         if (c == '\n') {
             // move input from buffer to message variable
-            String message = _inputBuffer;
-            _inputBuffer = "";
+            String message = inputBuffer_;
+            inputBuffer_ = "";
 
             // handle message
             message.trim();
@@ -57,9 +86,17 @@ void MQTT_Interface::loop() {
         }
         // add char to input buffer
         else {
-            _inputBuffer += c;
+            inputBuffer_ += c;
         }
     }
+
+    // send checkup
+    sendCheckup();
+
+    // Check if last checkup was received more than 3 seconds ago if so come to an emergency stop
+    if (millis() - context_.lastCheckupReceive > 3000) {
+        context_.force_stop = true;
+    }   
 }
 
 void MQTT_Interface::handleMessage(const String& message) {
@@ -91,9 +128,9 @@ void MQTT_Interface::handleMessage(const String& message) {
     }
 
     // call all callbacks that match the topic
-    for (size_t i = 0; i < _numSubs; i++) {
-        if (_subs[i].filter == topic) {
-            _subs[i].callback(topic, jsonPayload);
+    for (size_t i = 0; i < numSubs_; i++) {
+        if (subs_[i].filter == topic) {
+            subs_[i].callback(topic, jsonPayload);
         }
     }
 }

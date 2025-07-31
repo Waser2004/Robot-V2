@@ -33,6 +33,7 @@ void setup() {
     i2c_interface.init();
 
     // recieve rotation target
+    mqttInterface.subscribe("computer/out/checkup", MQTT_Interface::onCheckupReceive);
     mqttInterface.subscribe("computer/out/health/info", HealthMonitor::sendHealthStatus);
     
     mqttInterface.subscribe("computer/out/rotation/info", ActuatorManager::onActuatorInfo);
@@ -48,7 +49,7 @@ void setup() {
 void loop() {
     if (context.execute_movement){
         // listen for incoming messages
-        bool targetReached = mqttInterface.loop();
+        bool targetReached = actuatorManager.loop();
 
         // send movment complete message if target is reached
         if (targetReached) {
@@ -56,6 +57,9 @@ void loop() {
             mqttInterface.publish("arduino/out/rotation/complete", "{}");
         }
     }
+    
+    // handle MQTT messages
+    mqttInterface.loop();
     
     // Add a small delay
     delay(100);
