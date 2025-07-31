@@ -8,6 +8,7 @@
 #include "mqtt_interface.h"
 #include "health_monitor.h"
 #include "actuator_manager.h"
+#include "gripper_controller.h"
 
 #define ESP_01_SERIAL Serial1
 
@@ -16,11 +17,12 @@ AS5600 as5600;
 // initialize context and modules
 Context context;
 
-SensorReader    sensorReader(as5600, context);
-I2C_Interface   i2c_interface;
-HealthMonitor   healthMonitor(context, sensorReader, i2c_interface);
-MQTT_Interface  mqttInterface(ESP_01_SERIAL);
-ActuatorManager actuatorManager(context, sensorReader, i2c_interface);
+SensorReader      sensorReader(as5600, context);
+I2C_Interface     i2c_interface;
+HealthMonitor     healthMonitor(context, sensorReader, i2c_interface);
+MQTT_Interface    mqttInterface(ESP_01_SERIAL);
+ActuatorManager   actuatorManager(context, sensorReader, i2c_interface);
+GripperController gripperController(context, mqttInterface);
 
 void setup() {
     // Initialize serial communication
@@ -32,8 +34,12 @@ void setup() {
 
     // recieve rotation target
     mqttInterface.subscribe("computer/out/health/info", HealthMonitor::sendHealthStatus);
+    
     mqttInterface.subscribe("computer/out/rotation/info", ActuatorManager::onActuatorInfo);
     mqttInterface.subscribe("computer/out/rotation/target", ActuatorManager::onTargetRecieve);
+
+    mqttInterface.subscribe("computer/out/gripper/info", GripperController::getGripperState);
+    mqttInterface.subscribe("computer/out/gripper/target", GripperController::setGripperState);
 
     // perform health check
     healthMonitor.performHealthCheck();

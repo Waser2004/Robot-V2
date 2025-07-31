@@ -17,7 +17,7 @@ struct Context {
     // movement target
     bool  execute_movement = false; // true if a movement is currently being executed
     float target_rotation[6];
-    bool  target_gripper_state; // true = open, false = closed
+    bool  current_gripper_state; // true = open, false = closed
 
     // actuator angles
     float actuator_zero_pos[6]    = {0, 0, 0, 0, 0, 0}; // raw sensor value that corresponds to actuator 0 rotation
