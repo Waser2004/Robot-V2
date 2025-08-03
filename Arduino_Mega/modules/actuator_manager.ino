@@ -37,19 +37,33 @@ bool ActuatorManager::loop() {
 
     // calculate delta rotation
     for (int actuator_i = 0; actuator_i < 6; actuator_i++) {
-        // calculate delta rotation in valid range
+        // calculate delta rotation in valid range (handle wrap-around for circular angles)
         float current = actuator_angles[actuator_i];
         float target = context_.target_rotation[actuator_i];
-        delta_rotation[actuator_i] = max(target, current) - min(target, current);
+        float diff = target - current;
+        // Normalize to [-180, 180]
+        if (diff > 180.0f) {
+            diff -= 360.0f;
+        } else if (diff < -180.0f) {
+            diff += 360.0f;
+        }
+        delta_rotation[actuator_i] = diff;
+
+        if (actuator_i == 0) {
+            Serial.print("Actuator ");
+            Serial.print(actuator_i);
+            Serial.print(": Current = ");
+            Serial.print(current);
+            Serial.print(", Target = ");
+            Serial.print(target);
+            Serial.print(", Delta = ");
+            Serial.println(delta_rotation[actuator_i]);
+        }
 
         // target reached if delta is smaller than tolerance
-        if (delta_rotation[actuator_i] > context_.actuator_rotation_tolerance) {
+        if (abs(delta_rotation[actuator_i]) > context_.actuator_rotation_tolerance) {
             target_reached = false;
         } 
-
-        // apply delta with sign
-        float sign = (target > current) ? 1.0f : (target < current) ? -1.0f : 0.0f;
-        delta_rotation[actuator_i] *= sign;
 
         // calculate min execution time
         float execution_time = abs(delta_rotation[actuator_i]) / context_.max_actuator_velocity[actuator_i];
@@ -86,6 +100,8 @@ void ActuatorManager::onTargetRecieve(const String& topic, const JsonDocument& p
     instance_->context_.target_rotation[3] = payload["3"].as<float>();
     instance_->context_.target_rotation[4] = payload["4"].as<float>();
     instance_->context_.target_rotation[5] = payload["5"].as<float>();
+
+    Serial.println("Target rotation received:");
 
     // set execute movement flag and send acutator messages
     instance_->context_.execute_movement = true;

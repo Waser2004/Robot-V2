@@ -9,7 +9,7 @@ void I2C_Interface::init() {
 
 void I2C_Interface::sendStop() {
     /* This function sends the stop signal to all actuators */
-    byte message = 0;
+    byte message = 1;
 
     for (int i = 0; i < 6; i++) {
         Wire.beginTransmission(i);
@@ -30,9 +30,16 @@ void I2C_Interface::sendMovement(byte address, float deltaRotation, float deltaT
     // create message
     byte message[9];
 
-    message[0] = 1;
+
+    message[0] = 0;
     memcpy(&message[1], &deltaRotation, sizeof(float));
     memcpy(&message[5], &deltaTime, sizeof(float));
+
+    // convert to floats
+    float delta_angle;
+    float delta_time;
+    memcpy(&delta_angle, &message[1], 4);
+    memcpy(&delta_time,  &message[5], 4);
 
     // send message
     Wire.beginTransmission(address);

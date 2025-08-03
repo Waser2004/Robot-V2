@@ -10,9 +10,10 @@
 class GripperController {
     public:
 
-        GripperController(Context& context, MQTT_Interface& mqttInterface);
+        GripperController(Context& context, MQTT_Interface& mqttInterface, Servo& leftFinger, Servo& rightFinger);
 
         void        init();
+        void        loop();
         static void setGripperState(const String& topic, const JsonDocument& payload);
         static void getGripperState(const String& topic, const JsonDocument& payload);
 
@@ -23,7 +24,7 @@ class GripperController {
         Context& context_;
         MQTT_Interface& mqttInterface_;
 
-        Servo leftFinger_;
-        Servo rightFinger_;
+        Servo& leftFinger_;
+        Servo& rightFinger_;
 
 };

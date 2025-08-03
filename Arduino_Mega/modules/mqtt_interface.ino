@@ -48,6 +48,11 @@ bool MQTT_Interface::publish(const String& topic, const String& payload) {
     serial_.print(" ");
     serial_.println(payload);
 
+    Serial.print(F("pub "));
+    Serial.print(topic);
+    Serial.print(" ");
+    Serial.println(payload);
+
     // pub complete return true
     return true;
 }
@@ -73,6 +78,7 @@ void MQTT_Interface::loop() {
     while (serial_.available()) {
         //read char
         char c = (char)serial_.read();
+        Serial.print(c);
 
         // end of line
         if (c == '\n') {
@@ -97,6 +103,7 @@ void MQTT_Interface::loop() {
 
     // Check if last checkup was received more than 3 seconds ago if so come to an emergency stop
     if (millis() - context_.lastCheckupReceive > 3000) {
+        Serial.println(F("Emergency stop due to no checkup received!"));
         context_.force_stop = true;
     }   
 }
@@ -106,6 +113,9 @@ void MQTT_Interface::handleMessage(const String& message) {
     if (message.startsWith(F("sub "))) {
         return;
     }
+    
+    Serial.print(F("Received message: "));
+    Serial.println(message);
 
     // get space positions
     int firstSpace = message.indexOf(' ');

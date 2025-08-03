@@ -9,6 +9,7 @@ class SensorReader {
 
         SensorReader(AS5600& as5600, Context& context);
 
+        void  init();
         float readAngle(int actuator_index);
 
     private:

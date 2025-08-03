@@ -11,8 +11,8 @@
 
 GripperController* GripperController::instance_ = nullptr;
 
-GripperController::GripperController(Context& context, MQTT_Interface& mqttInterface)
-    : context_(context), mqttInterface_(mqttInterface) {
+GripperController::GripperController(Context& context, MQTT_Interface& mqttInterface, Servo& leftFinger, Servo& rightFinger)
+    : context_(context), mqttInterface_(mqttInterface), leftFinger_(leftFinger), rightFinger_(rightFinger) {
     instance_ = this;
 }
 
@@ -29,6 +29,21 @@ void GripperController::init(){
     setGripperState("", payload);
 }
 
+void GripperController::loop() {
+    /*
+        This method is called in the main loop to actively write the gripper postion to the servos.
+    */
+    if (context_.current_gripper_state) {
+        // Open the gripper
+        leftFinger_.write(15);
+        rightFinger_.write(85);
+    } else {
+        // Close the gripper
+        leftFinger_.write(100);
+        rightFinger_.write(0);
+    }
+}
+
 void GripperController::setGripperState(const String& topic, const JsonDocument& payload) {
     /*
         This function open and closes the gripper based on the input parameter.
@@ -39,16 +54,6 @@ void GripperController::setGripperState(const String& topic, const JsonDocument&
     // update gripper state
     bool open = payload["open"].as<bool>();
     instance_->context_.current_gripper_state = open;
-
-    if (open) {
-        // Open the gripper
-        instance_->leftFinger_.write(0);
-        instance_->rightFinger_.write(90);
-    } else {
-        // Close the gripper
-        instance_->leftFinger_.write(90);
-        instance_->rightFinger_.write(0);
-    }
 
     // publish gripper complte
     instance_->mqttInterface_.publish("arduino/out/gripper/complete", "{}");

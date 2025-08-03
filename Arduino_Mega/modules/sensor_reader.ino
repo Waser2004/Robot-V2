@@ -6,7 +6,9 @@
 
 SensorReader::SensorReader(AS5600& as5600, Context& context) 
     : as5600_(as5600), context_(context) 
-{   
+{}
+
+void SensorReader::init() {
     // initialize the AS5600 sensor
     as5600_.begin();
     as5600_.setDirection(AS5600_CLOCK_WISE);
