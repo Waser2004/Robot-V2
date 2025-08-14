@@ -20,8 +20,12 @@ void MQTT_Interface::onCheckupReceive(const String& topic, const JsonDocument& p
         This method is called when a checkup message is received.
         It updates the last checkup receive time.
     */
+    Serial.println(F("Checkup received"));
+
     if (!instance_) return;
+    
     instance_->context_.lastCheckupReceive = millis();
+    instance_->context_.force_stop         = false;
 }
 
 void MQTT_Interface::sendCheckup() {
@@ -33,8 +37,20 @@ void MQTT_Interface::sendCheckup() {
         return;
     }
 
-    // publish checkup
-    publish("checkup", "{}");
+    // create checkup payload
+    JsonDocument checkupPayload;
+    checkupPayload["0"] = context_.current_rotation[0];
+    checkupPayload["1"] = context_.current_rotation[1];
+    checkupPayload["2"] = context_.current_rotation[2];
+    checkupPayload["3"] = context_.current_rotation[3];
+    checkupPayload["4"] = context_.current_rotation[4];
+    checkupPayload["5"] = context_.current_rotation[5];
+    checkupPayload["gripper"] = context_.current_gripper_state;
+
+    // serialize payload to string and send
+    String payload;
+    serializeJson(checkupPayload, payload);
+    publish("arduino/out/checkup", payload);
     
     // update last checkup send time
     context_.lastCheckupSend = millis();
@@ -47,11 +63,6 @@ bool MQTT_Interface::publish(const String& topic, const String& payload) {
     serial_.print(topic);
     serial_.print(" ");
     serial_.println(payload);
-
-    Serial.print(F("pub "));
-    Serial.print(topic);
-    Serial.print(" ");
-    Serial.println(payload);
 
     // pub complete return true
     return true;

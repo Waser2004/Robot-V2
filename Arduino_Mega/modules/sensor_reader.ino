@@ -26,6 +26,8 @@ float SensorReader::readAngle(int actuator_index) {
     // normalize angle between 0° and 360°
     angle = fmod(angle - context_.actuator_zero_pos[actuator_index], 360);
     if (angle < 0) {angle += 360;}
-
+    
+    // return and add to the context
+    context_.current_rotation[actuator_index] = angle;
     return angle;
 }

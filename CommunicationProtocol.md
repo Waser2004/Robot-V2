@@ -10,9 +10,15 @@ This protocol governs all MQTT‑based messaging between an Arduino Mega (“Ard
 
 ## 1. Heartbeat / Checkup
 
+> **Payload schema**  
+> ```json
+> { "0": <float>, "1": <float>, ..., "5": <float>, "open": <bool> }
+> ```
+> Keys `0–5` correspond to joints 0–5 and the values are the current rotation
+
 | Direction | Topic                     | Payload      | Expected Response                        | Timeout Behavior                                       |
 |-----------|---------------------------|--------------|------------------------------------------|--------------------------------------------------------|
-| Arduino → Computer | `arduino/out/checkup`       | `{}`         | Computer must publish `computer/out/checkup` within 1 s. | If Arduino sees 3 missed responses → **Emergency Stop**. |
+| Arduino → Computer | `arduino/out/checkup`       | checkup payload         | Computer must publish `computer/out/checkup` within 1 s. | If Arduino sees 3 missed responses → **Emergency Stop**. |
 | Computer → Arduino | `computer/out/checkup`       | `{}`         | —                                        | If Computer sees no checkup in 3 s → **Pause Processes**. |
 
 ---
