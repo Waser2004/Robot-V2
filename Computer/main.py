@@ -6,10 +6,22 @@ async def main():
     mqtt = MQTTClient()
     await mqtt.connect()
 
-    await mqtt.sub('arduino/out', lambda topic, message: print(f"Received on {topic}: {message}"))
-    await mqtt.pub('arduino/in', '{"type": "message", "message": "Hello, World!"}')
+    # subscribe to checkup
+    await mqtt.sub("arduino/out/checkup", mqtt.pub("computer/out/checkup", "{}"))
 
     mqtt.loop()
 
+    # close connection on exit
+    try:
+        await asyncio.Event().wait()
+    except (KeyboardInterrupt, asyncio.CancelledError):
+        pass
+    finally:
+        mqtt.close()
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass

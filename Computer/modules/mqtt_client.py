@@ -33,6 +33,8 @@ class MQTTClient():
     async def pub(self, topic, message):
         """Publish a message to a topic."""
         msg = f'pub {topic} {message}\n'
+        byte_msg = msg.encode('utf-8')
+        print(f"Sending {len(byte_msg)} bytes: {msg!r}")
         self.sock.sendall(msg.encode('utf-8'))
 
     async def sub(self, topic, callback):
@@ -45,7 +47,7 @@ class MQTTClient():
         print(self.subs)
         
     # handle incoming message
-    def loop(self):
+    async def loop(self):
         """Handle incoming messages."""
         buffer = ''
         while True:
@@ -75,5 +77,5 @@ class MQTTClient():
                 # call the callback for the topic
                 if topic in self.subs:
                     for callback in self.subs[topic]:
-                        callback(topic, payload)
+                        await callback(topic, payload)
         
