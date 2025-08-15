@@ -78,11 +78,11 @@ void HealthMonitor::performHealthCheck() {
         if (!health_check_complete[actuator_index]) {
             // likely a sensor failure
             if (initial_readings[actuator_index] == 0.0) {
-                context_.health_check_results[actuator_index] = 0;
+                context_.health_check_results[actuator_index] = 400;
             } 
             // likely a motor failure
             else {
-                context_.health_check_results[actuator_index] = 1;
+                context_.health_check_results[actuator_index] = 401;
             }
         } else {
             // good health check
