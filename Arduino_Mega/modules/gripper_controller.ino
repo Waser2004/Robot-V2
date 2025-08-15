@@ -51,6 +51,9 @@ void GripperController::setGripperState(const String& topic, const JsonDocument&
     // check for instance
     if (!instance_) return;
 
+    // publish gripper target received
+    instance_->mqttInterface_.publish("arduino/confirm/gripper/target", "{}");
+
     // update gripper state
     bool open = payload["open"].as<bool>();
     instance_->context_.current_gripper_state = open;

@@ -87,21 +87,115 @@ bool ActuatorManager::loop() {
 
 void ActuatorManager::onTargetRecieve(const String& topic, const JsonDocument& payload) {
     /*
-        This function is called when a target rotation is received via MQTT.
-        It updates the target_rotation and sends the new movement to the actuators.
+        Handle incoming single rotation target: apply immediately if override or idle,
+        else append to buffer (max 20). Publish buffer status, set execute_movement,
+        then call loop() to (re)start movement.
     */
     // check if instance is initialized
     if (!instance_) return;
-    
-    // extract rotation values
-    instance_->context_.target_rotation[0] = payload["0"].as<float>();
-    instance_->context_.target_rotation[1] = payload["1"].as<float>();
-    instance_->context_.target_rotation[2] = payload["2"].as<float>();
-    instance_->context_.target_rotation[3] = payload["3"].as<float>();
-    instance_->context_.target_rotation[4] = payload["4"].as<float>();
-    instance_->context_.target_rotation[5] = payload["5"].as<float>();
 
-    Serial.println("Target rotation received:");
+    JsonDocument responsePayload;
+    String       JsonString;
+    
+    // add as new rotation target if override is set or no movement is currently being executed
+    if (payload["override"].as<bool>() || !instance_->context_.execute_movement) {
+        instance_->context_.target_rotation[0] = payload["0"].as<float>();
+        instance_->context_.target_rotation[1] = payload["1"].as<float>();
+        instance_->context_.target_rotation[2] = payload["2"].as<float>();
+        instance_->context_.target_rotation[3] = payload["3"].as<float>();
+        instance_->context_.target_rotation[4] = payload["4"].as<float>();
+        instance_->context_.target_rotation[5] = payload["5"].as<float>();
+
+        instance_->context_.target_rotation_buffer_amount = 0;
+    }
+    // add to target rotation buffer if buffer is not full
+    else if (instance_->context_.target_rotation_buffer_amount < 20) {
+        // add to target rotation buffer
+        instance_->context_.target_rotation_buffer[instance_->context_.target_rotation_buffer_amount][0] = payload["0"].as<float>();
+        instance_->context_.target_rotation_buffer[instance_->context_.target_rotation_buffer_amount][1] = payload["1"].as<float>();
+        instance_->context_.target_rotation_buffer[instance_->context_.target_rotation_buffer_amount][2] = payload["2"].as<float>();
+        instance_->context_.target_rotation_buffer[instance_->context_.target_rotation_buffer_amount][3] = payload["3"].as<float>();
+        instance_->context_.target_rotation_buffer[instance_->context_.target_rotation_buffer_amount][4] = payload["4"].as<float>();
+        instance_->context_.target_rotation_buffer[instance_->context_.target_rotation_buffer_amount][5] = payload["5"].as<float>();
+
+        // increment buffer amount
+        instance_->context_.target_rotation_buffer_amount ++;
+    } 
+    // buffer is full, add buffer overflow to response payload
+    else {
+        responsePayload["buffer-overflow"] = 1;
+    }
+
+    // confirm target rotation recieved
+    responsePayload["buffer-amount"] = instance_->context_.target_rotation_buffer_amount;
+    serializeJson(responsePayload, JsonString);
+
+    instance_->mqtt_interface_.publish("arduino/confirm/rotation/target", JsonString);
+
+    // set execute movement flag and send acutator messages
+    instance_->context_.execute_movement = true;
+    instance_->loop();
+}
+
+void ActuatorManager::onPathRecieve(const String& topic, const JsonDocument& payload) {
+    /* 
+        Handle incoming rotation/path entry: apply immediately if override or idle,
+        else append to buffer (max 20). Publish buffer status, set execute_movement,
+        then call loop() to (re)start movement.
+    */
+    // check if instance is initialized
+    if (!instance_) return;
+
+    JsonDocument responsePayload;
+    String       JsonString;
+
+    
+    JsonArray path          = payload["path"].as<JsonArray>();
+    bool      addToTarget   = payload["override"].as<bool>() || !instance_->context_.execute_movement;
+    int       overflowCount = 0;
+
+    // loop over all targets in the path
+    for (JsonObject target : path) {
+
+        // add as new rotation target if override is set or no movement is currently being executed
+        if (addToTarget) {
+            instance_->context_.target_rotation[0] = target["0"].as<float>();
+            instance_->context_.target_rotation[1] = target["1"].as<float>();
+            instance_->context_.target_rotation[2] = target["2"].as<float>();
+            instance_->context_.target_rotation[3] = target["3"].as<float>();
+            instance_->context_.target_rotation[4] = target["4"].as<float>();
+            instance_->context_.target_rotation[5] = target["5"].as<float>();
+
+            addToTarget = false;
+            instance_->context_.target_rotation_buffer_amount = 0;
+        }
+        // add to target rotation buffer if buffer is not full
+        else if (instance_->context_.target_rotation_buffer_amount < 20) {
+            // add to target rotation buffer
+            instance_->context_.target_rotation_buffer[instance_->context_.target_rotation_buffer_amount][0] = target["0"].as<float>();
+            instance_->context_.target_rotation_buffer[instance_->context_.target_rotation_buffer_amount][1] = target["1"].as<float>();
+            instance_->context_.target_rotation_buffer[instance_->context_.target_rotation_buffer_amount][2] = target["2"].as<float>();
+            instance_->context_.target_rotation_buffer[instance_->context_.target_rotation_buffer_amount][3] = target["3"].as<float>();
+            instance_->context_.target_rotation_buffer[instance_->context_.target_rotation_buffer_amount][4] = target["4"].as<float>();
+            instance_->context_.target_rotation_buffer[instance_->context_.target_rotation_buffer_amount][5] = target["5"].as<float>();
+
+            // increment buffer amount
+            instance_->context_.target_rotation_buffer_amount ++;
+        } 
+        // buffer is full, add buffer overflow to response payload
+        else {
+            overflowCount ++;
+        }
+    }
+    
+    // prepare response payload
+    if (overflowCount > 0) {
+        responsePayload["buffer-overflow"] = overflowCount;
+    }
+    responsePayload["buffer-amount"] = instance_->context_.target_rotation_buffer_amount;
+    serializeJson(responsePayload, JsonString);
+
+    instance_->mqtt_interface_.publish("arduino/confirm/rotation/path", JsonString);
 
     // set execute movement flag and send acutator messages
     instance_->context_.execute_movement = true;
@@ -153,4 +247,28 @@ void ActuatorManager::onActuatorInfo(const String& topic, const JsonDocument& pa
     // serialize and publish target angles
     serializeJson(response, JsonString);
     instance_->mqtt_interface_.publish("arduino/out/rotation/target", JsonString);
+
+    // create target rotation buffer json
+    response.clear();
+    response["buffer-amount"] = instance_->context_.target_rotation_buffer_amount;
+
+    // serialize and publish target rotation buffer
+    serializeJson(response, JsonString);
+    instance_->mqtt_interface_.publish("arduino/out/rotation/buffer", JsonString);
+}
+
+void ActuatorManager::onRotationClear(const String& topic, const JsonDocument& payload) {
+    /*
+        This function is called when the rotation should be cleared.
+        It clears the target rotation buffer and resets the target rotation.
+    */
+    // check if instance is initialized
+    if (!instance_) return;
+
+    // halt movement and reset buffer size
+    instance_->context_.execute_movement = false;
+    instance_->context_.target_rotation_buffer_amount = 0;
+
+    // confirm rotation clear
+    mqtt_interface_.publish("arduino/confirm/rotation/clear", "{}");
 }

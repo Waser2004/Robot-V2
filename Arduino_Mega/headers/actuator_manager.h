@@ -15,7 +15,9 @@ class ActuatorManager {
 
         bool        loop();
         static void onTargetRecieve(const String& topic, const JsonDocument& payload);
+        static void onPathRecieve(const String& topic, const JsonDocument& payload);
         static void onActuatorInfo(const String& topic, const JsonDocument& payload);
+        static void onRotationClear(const String& topic, const JsonDocument& payload);
 
     private:
 

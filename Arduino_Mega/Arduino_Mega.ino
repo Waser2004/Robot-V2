@@ -42,14 +42,16 @@ void setup() {
     sensorReader.init();
     i2c_interface.init();
 
-    // recieve rotation target
+    // recieve messages
     mqttInterface.subscribe("computer/out/checkup", MQTT_Interface::onCheckupReceive);
     mqttInterface.subscribe("computer/out/health/info", HealthMonitor::sendHealthStatus);
     
+    mqttInterface.subscribe("computer/out/rotation/path", ActuatorManager::onPathRecieve);
     mqttInterface.subscribe("computer/out/rotation/info", ActuatorManager::onActuatorInfo);
+    mqttInterface.subscribe("computer/out/rotation/clear", ActuatorManager::onRotationClear);
     mqttInterface.subscribe("computer/out/rotation/target", ActuatorManager::onTargetRecieve);
 
-    mqttInterface.subscribe("computer/out/gripper/info", GripperController::getGripperState);
+    mqttInterface.subscribe("computer/out/gripper/info", GripperController::getGripperState); 
     mqttInterface.subscribe("computer/out/gripper/target", GripperController::setGripperState);
 
     delay(1000); // wait for everything to stabilize
@@ -60,14 +62,36 @@ void setup() {
 }
 
 void loop() {
-    if (context.execute_movement){
-        // listen for incoming messages
+    if (context.execute_movement) {
+        // actuator movement loop
         bool targetReached = actuatorManager.loop();
 
-        // send movment complete message if target is reached
         if (targetReached) {
-            context.execute_movement = false;
-            mqttInterface.publish("arduino/out/rotation/complete", "{}");
+            if (context.target_rotation_buffer_amount > 0) {
+                // load next target from buffer[0]
+                for (int i = 0; i < 6; ++i) {
+                    context.target_rotation[i] = context.target_rotation_buffer[0][i];
+                }
+
+                // shift remaining buffered targets up by one
+                for (int i = 1; i < context.target_rotation_buffer_amount; ++i) {
+                    for (int j = 0; j < 6; ++j) {
+                        context.target_rotation_buffer[i - 1][j] = context.target_rotation_buffer[i][j];
+                    }
+                }
+
+                // reduce count
+                context.target_rotation_buffer_amount--;
+            } else {
+                context.execute_movement = false;
+            }
+
+            JSONDocument payload;
+            String       JSONString;
+            payload["buffer-amount"] = context.target_rotation_buffer_amount;
+            serializeJson(payload, JSONString);
+
+            mqttInterface.publish("arduino/out/rotation/target/reached", JSONString);
         }
     }
 

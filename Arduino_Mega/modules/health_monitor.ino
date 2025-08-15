@@ -18,8 +18,8 @@ void HealthMonitor::performHealthCheck() {
         This function initiates a small rotation for each actuator and verifies sensor feedback to ensure proper operation.
 
         It detects and categorizes possible failures:
-        - [code 0] Sensor failure: Sensor readings remain at 0.0 after rotation is initiated, indicating sensor malfunction.
-        - [code 1] Motor failure: Sensor readings are non-zero but do not change after rotation is initiated, indicating motor malfunction.
+        - [code 400] Sensor failure: Sensor readings remain at 0.0 after rotation is initiated, indicating sensor malfunction.
+        - [code 401] Motor failure: Sensor readings are non-zero but do not change after rotation is initiated, indicating motor malfunction.
 
         If no issues are detected the actuator is assigned a good health status [code 200].
     */
