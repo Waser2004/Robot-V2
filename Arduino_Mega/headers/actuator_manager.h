@@ -13,7 +13,8 @@ class ActuatorManager {
 
         ActuatorManager(Context& context, SensorReader& sensorReader, I2C_Interface& i2cInterface, MQTT_Interface& mqttInterface);
 
-        bool        loop();
+        void        loop();
+        bool        executeRotation();
         static void onTargetRecieve(const String& topic, const JsonDocument& payload);
         static void onPathRecieve(const String& topic, const JsonDocument& payload);
         static void onActuatorInfo(const String& topic, const JsonDocument& payload);
@@ -21,6 +22,8 @@ class ActuatorManager {
 
     private:
 
+        float handleDeadzone(int actuator_i, float angle, float delta);
+        float normalizeAngle(float angle);
         static ActuatorManager* instance_;
 
         Context& context_;

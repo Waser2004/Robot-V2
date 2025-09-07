@@ -48,8 +48,13 @@ class MQTT_Interface {
         size_t numSubs_ = 0;
 
         // input buffer
-        String inputBuffer_;
+        char   inputBuffer_[512];
+        size_t inputBufferHead_ = 0;
 
-        // handle incoming messages
-        void handleMessage(const String& message);
+        // software flow control state
+        bool   xoffSent_ = false;
+        void   handleFlowControl();
+
+        // handle incoming messages (accept C-string to avoid String allocations)
+        void handleMessage();
 };

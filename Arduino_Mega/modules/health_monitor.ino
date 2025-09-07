@@ -39,8 +39,6 @@ void HealthMonitor::performHealthCheck() {
 
     // initiate health check loop
     while (check_count < maxHealthCheckRepeats && complete_count < 6) {
-        Serial.print("Health check iteration ");
-        Serial.println(check_count + 1);
         // send movement request to all actuators where health check is not yet complete
         for (int actuator_index = 0; actuator_index < 6; actuator_index++) {
             if (!health_check_complete[actuator_index]) {

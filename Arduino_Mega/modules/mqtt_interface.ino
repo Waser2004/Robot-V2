@@ -14,14 +14,28 @@ MQTT_Interface::MQTT_Interface(Stream& transport, Context& context, size_t maxSu
     instance_ = this;
 }
 
+// Flow control thresholds for Serial1 RX on Mega
+static const int RX_HIGH_WATERMARK = 48; // send XOFF at/above this
+static const int RX_LOW_WATERMARK  = 16; // send XON at/below this
+
+void MQTT_Interface::handleFlowControl() {
+    // Monitor RX pending bytes and emit XOFF/XON to ESP-01
+    int avail = serial_.available();
+    if (!xoffSent_ && avail >= RX_HIGH_WATERMARK) {
+        serial_.write((uint8_t)0x13); // XOFF
+        xoffSent_ = true;
+    } else if (xoffSent_ && avail <= RX_LOW_WATERMARK) {
+        serial_.write((uint8_t)0x11); // XON
+        xoffSent_ = false;
+    }
+}
+
 // checkup methods
 void MQTT_Interface::onCheckupReceive(const String& topic, const JsonDocument& payload) {
     /*
         This method is called when a checkup message is received.
         It updates the last checkup receive time.
     */
-    Serial.println(F("Checkup received"));
-
     if (!instance_) return;
     
     instance_->context_.lastCheckupReceive = millis();
@@ -85,27 +99,32 @@ bool MQTT_Interface::subscribe(const String& filter, const MQTT_Callback& callba
 }
 
 void MQTT_Interface::loop() {
+    // Apply flow control before draining RX (pause sender if we're backed up)
+    handleFlowControl();
+
     // message handling loop
     while (serial_.available()) {
-        //read char
-        char c = (char)serial_.read();
-        Serial.print(c);
+        // read char
+        char c = serial_.read();
 
         // end of line
         if (c == '\n') {
-            // move input from buffer to message variable
-            String message = inputBuffer_;
-            inputBuffer_ = "";
+            // null-terminate and handle message
+            inputBuffer_[inputBufferHead_] = '\0';
+            handleMessage();
 
-            // handle message
-            message.trim();
-            if (message.length()) {
-                handleMessage(message);
-            }
+            // reset buffer
+            inputBufferHead_ = 0;
         }
-        // add char to input buffer
+        // add char to input buffer (guard against overflow)
         else {
-            inputBuffer_ += c;
+            if (inputBufferHead_ + 1 < sizeof(inputBuffer_)) {
+                inputBuffer_[inputBufferHead_] = c;
+                inputBufferHead_++;
+            } else {
+                // buffer full, drop input and reset to avoid overflow
+                inputBufferHead_ = 0;
+            }
         }
     }
 
@@ -114,46 +133,51 @@ void MQTT_Interface::loop() {
 
     // Check if last checkup was received more than 3 seconds ago if so come to an emergency stop
     if (millis() - context_.lastCheckupReceive > 3000) {
-        Serial.println(F("Emergency stop due to no checkup received!"));
         context_.force_stop = true;
     }   
+
+    // Re-evaluate flow control after draining some bytes
+    handleFlowControl();
 }
 
-void MQTT_Interface::handleMessage(const String& message) {
-    // check if message starts with "sub" - skip subscription messages
-    if (message.startsWith(F("sub "))) {
-        return;
-    }
-    
-    Serial.print(F("Received message: "));
-    Serial.println(message);
-
-    // get space positions
-    int firstSpace = message.indexOf(' ');
-    int secondSpace = message.indexOf(' ', firstSpace + 1);
-
-    // check if message is valid format
-    if (firstSpace < 0 || secondSpace < 0) {
+void MQTT_Interface::handleMessage() {
+    // check if message starts with "sub " - skip subscription messages
+    if (strncmp(inputBuffer_, "sub ", 4) == 0) {
         return;
     }
 
-    // extract topic and payload
-    String topic = message.substring(firstSpace + 1, secondSpace);
-    String payload = message.substring(secondSpace + 1);
+    // find first and second spaces
+    const char* firstSpace = strchr(inputBuffer_, ' ');
+    if (!firstSpace) return;
+    const char* secondSpace = strchr(firstSpace + 1, ' ');
+    if (!secondSpace) return;
 
-    // deserialize JSON payload
-    JsonDocument jsonPayload;
-    DeserializationError error = deserializeJson(jsonPayload, payload);
+    // extract topic into a temporary buffer
+    size_t topicLen = secondSpace - (firstSpace + 1);
+    if (topicLen == 0 || topicLen > 64) return; // sanity checks
+    char topicBuf[64];
+    memcpy(topicBuf, firstSpace + 1, topicLen);
+    topicBuf[topicLen] = '\0';
+
+    // payload starts after second space
+    const char* payloadPtr = secondSpace + 1;
+
+    // deserialize JSON payload from C-string
+    // Use a dynamic doc sized reasonably for expected payloads
+    StaticJsonDocument<512> jsonPayload;
+    DeserializationError error = deserializeJson(jsonPayload, payloadPtr);
 
     // handle deserialization error
     if (error) {
-        publish(topic, "{\"error\": \"payload could not be parsed\"}");
+        // publish error back using topicBuf
+        publish(String(topicBuf), String("{\"error\": " + String(error.c_str()) + "}"));
+        return;
     }
 
     // call all callbacks that match the topic
     for (size_t i = 0; i < numSubs_; i++) {
-        if (subs_[i].filter == topic) {
-            subs_[i].callback(topic, jsonPayload);
+        if (subs_[i].filter == String(topicBuf)) {
+            subs_[i].callback(String(topicBuf), jsonPayload);
         }
     }
 }
